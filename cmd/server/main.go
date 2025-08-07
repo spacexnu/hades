@@ -1,4 +1,4 @@
-// Package main provides the HTTP server entry point for the HADES URL analysis service.
+// Command server starts the HADES HTTP service.
 package main
 
 import (

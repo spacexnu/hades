@@ -1,4 +1,4 @@
-// Package api provides HTTP handlers for the HADES URL analysis service.
+// Package api exposes HTTP handlers for the HADES service.
 package api
 
 import (
@@ -9,7 +9,7 @@ import (
 	"hades/internal/models"
 )
 
-// AnalyzeHandler handles URL analysis requests and returns analysis results.
+// AnalyzeHandler accepts a list of URLs and returns analysis results as JSON.
 func AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 	var req models.URLRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -19,13 +19,8 @@ func AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 
 	results := []models.URLAnalysisResult{}
 	for _, u := range req.URLs {
-		features := analyzer.ExtractFeatures(u)
-		score := analyzer.EvaluateHeuristics(features)
-		results = append(results, models.URLAnalysisResult{
-			URL:     u,
-			Score:   score,
-			Details: features,
-		})
+		result := analyzer.PerformComprehensiveAnalysis(u)
+		results = append(results, result)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -35,7 +30,7 @@ func AnalyzeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// HealthHandler handles health check requests and returns service status.
+// HealthHandler returns a simple health-check response.
 func HealthHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

@@ -9,7 +9,7 @@ import (
 	"hades/internal/models"
 )
 
-// ExtractFeatures extracts security-relevant features from a URL for analysis.
+// ExtractFeatures parses a raw URL and produces URLFeatures populated with heuristic inputs.
 func ExtractFeatures(rawURL string) models.URLFeatures {
 	parsed, _ := url.Parse(rawURL)
 	domain := parsed.Hostname()
@@ -26,7 +26,7 @@ func ExtractFeatures(rawURL string) models.URLFeatures {
 	}
 }
 
-// EvaluateHeuristics calculates a risk score based on URL features using heuristic rules.
+// EvaluateHeuristics scores URL-only signals producing a partial risk score.
 func EvaluateHeuristics(f models.URLFeatures) int {
 	score := 0
 	if f.UsesInsecureProtocol {
@@ -65,4 +65,46 @@ func isIPAddress(host string) bool {
 	// Try to parse as IP address
 	ip := net.ParseIP(host)
 	return ip != nil
+}
+
+// PerformComprehensiveAnalysis runs URL and HTML analysis and returns a combined result.
+func PerformComprehensiveAnalysis(rawURL string) models.URLAnalysisResult {
+	urlFeatures := ExtractFeatures(rawURL)
+	urlScore := EvaluateHeuristics(urlFeatures)
+
+	htmlFeatures := FetchAndAnalyzeHTML(rawURL)
+
+	finalScore := CalculateFinalScore(urlScore, htmlFeatures.HTMLScore)
+
+	return models.URLAnalysisResult{
+		URL:         rawURL,
+		Score:       urlScore,
+		URLDetails:  urlFeatures,
+		HTMLDetails: convertHTMLFeatures(htmlFeatures),
+		FinalScore:  finalScore,
+	}
+}
+
+// CalculateFinalScore combines URL and HTML scores into a bounded final score.
+func CalculateFinalScore(urlScore, htmlScore int) int {
+	finalScore := int(float64(urlScore)*0.4 + float64(htmlScore)*0.6)
+
+	if finalScore > 100 {
+		finalScore = 100
+	}
+
+	return finalScore
+}
+
+func convertHTMLFeatures(internal HTMLFeatures) models.HTMLFeatures {
+	return models.HTMLFeatures{
+		ContentFetched:       internal.ContentFetched,
+		HasSuspiciousTitle:   internal.HasSuspiciousTitle,
+		HasPhishingKeywords:  internal.HasPhishingKeywords,
+		HasSuspiciousForms:   internal.HasSuspiciousForms,
+		HasExternalRedirects: internal.HasExternalRedirects,
+		HasObfuscatedCode:    internal.HasObfuscatedCode,
+		MissingSSLIndicators: internal.MissingSSLIndicators,
+		HTMLScore:            internal.HTMLScore,
+	}
 }
