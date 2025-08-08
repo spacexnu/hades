@@ -50,49 +50,40 @@ func TestAnalyzeHandler_ValidRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Marshal request body to JSON
 			jsonBody, err := json.Marshal(tt.requestBody)
 			if err != nil {
 				t.Fatalf("Failed to marshal request body: %v", err)
 			}
 
-			// Create HTTP request
 			req, err := http.NewRequest("POST", "/analyze", bytes.NewBuffer(jsonBody))
 			if err != nil {
 				t.Fatalf("Failed to create request: %v", err)
 			}
 			req.Header.Set("Content-Type", "application/json")
 
-			// Create response recorder
 			rr := httptest.NewRecorder()
 
-			// Call the handler
 			AnalyzeHandler(rr, req)
 
-			// Check status code
 			if status := rr.Code; status != tt.expectedStatus {
 				t.Errorf("Expected status %d, got %d", tt.expectedStatus, status)
 			}
 
-			// Check content type
 			expectedContentType := "application/json"
 			if contentType := rr.Header().Get("Content-Type"); contentType != expectedContentType {
 				t.Errorf("Expected content type %s, got %s", expectedContentType, contentType)
 			}
 
-			// Parse response body
 			var results []models.URLAnalysisResult
 			err = json.Unmarshal(rr.Body.Bytes(), &results)
 			if err != nil {
 				t.Fatalf("Failed to unmarshal response: %v", err)
 			}
 
-			// Check number of results
 			if len(results) != tt.expectedCount {
 				t.Errorf("Expected %d results, got %d", tt.expectedCount, len(results))
 			}
 
-			// Validate each result
 			for i, result := range results {
 				if i >= len(tt.requestBody.URLs) {
 					t.Errorf("More results than input URLs")
@@ -104,17 +95,15 @@ func TestAnalyzeHandler_ValidRequest(t *testing.T) {
 					t.Errorf("Result[%d] URL: expected %s, got %s", i, expectedURL, result.URL)
 				}
 
-				// Score should be non-negative integer
 				if result.Score < 0 {
 					t.Errorf("Result[%d] Score should be non-negative, got %d", i, result.Score)
 				}
 
-				// Details should have reasonable values
-				if result.Details.DomainLength < 0 {
-					t.Errorf("Result[%d] DomainLength should be non-negative, got %d", i, result.Details.DomainLength)
+				if result.URLDetails.DomainLength < 0 {
+					t.Errorf("Result[%d] DomainLength should be non-negative, got %d", i, result.URLDetails.DomainLength)
 				}
-				if result.Details.URLLength < 0 {
-					t.Errorf("Result[%d] URLLength should be non-negative, got %d", i, result.Details.URLLength)
+				if result.URLDetails.URLLength < 0 {
+					t.Errorf("Result[%d] URLLength should be non-negative, got %d", i, result.URLDetails.URLLength)
 				}
 			}
 		})
@@ -151,25 +140,20 @@ func TestAnalyzeHandler_InvalidJSON(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create HTTP request
 			req, err := http.NewRequest("POST", "/analyze", strings.NewReader(tt.requestBody))
 			if err != nil {
 				t.Fatalf("Failed to create request: %v", err)
 			}
 			req.Header.Set("Content-Type", "application/json")
 
-			// Create response recorder
 			rr := httptest.NewRecorder()
 
-			// Call the handler
 			AnalyzeHandler(rr, req)
 
-			// Check status code
 			if status := rr.Code; status != tt.expectedStatus {
 				t.Errorf("Expected status %d, got %d", tt.expectedStatus, status)
 			}
 
-			// For bad requests, response should contain error message
 			if tt.expectedStatus == http.StatusBadRequest {
 				if rr.Body.Len() == 0 {
 					t.Error("Expected error message in response body for bad request")
@@ -184,7 +168,6 @@ func TestAnalyzeHandler_HTTPMethods(t *testing.T) {
 
 	for _, method := range methods {
 		t.Run(method, func(t *testing.T) {
-			// Provide empty JSON body to prevent nil pointer dereference
 			req, err := http.NewRequest(method, "/analyze", strings.NewReader("{}"))
 			if err != nil {
 				t.Fatalf("Failed to create request: %v", err)
@@ -194,9 +177,6 @@ func TestAnalyzeHandler_HTTPMethods(t *testing.T) {
 			rr := httptest.NewRecorder()
 			AnalyzeHandler(rr, req)
 
-			// The handler doesn't explicitly check HTTP method,
-			// so it will try to decode the body and should succeed with empty JSON
-			// This tests the handler's behavior with different methods
 			if rr.Code != http.StatusBadRequest && rr.Code != http.StatusOK {
 				t.Errorf("Unexpected status code for %s method: %d", method, rr.Code)
 			}
@@ -241,13 +221,11 @@ func TestAnalyzeHandler_SuspiciousURLs(t *testing.T) {
 		t.Errorf("Expected %d results, got %d", len(suspiciousURLs), len(results))
 	}
 
-	// Check that suspicious URLs get higher scores
 	for i, result := range results {
 		if result.Score == 0 {
 			t.Logf("Warning: Suspicious URL %s got score 0, expected higher score", suspiciousURLs[i])
 		}
 
-		// Verify the URL matches
 		if result.URL != suspiciousURLs[i] {
 			t.Errorf("Result[%d] URL mismatch: expected %s, got %s", i, suspiciousURLs[i], result.URL)
 		}
@@ -255,7 +233,6 @@ func TestAnalyzeHandler_SuspiciousURLs(t *testing.T) {
 }
 
 func TestAnalyzeHandler_LargeRequest(t *testing.T) {
-	// Test with many URLs
 	urls := make([]string, 100)
 	for i := 0; i < 100; i++ {
 		urls[i] = "https://example" + string(rune('a'+i%26)) + ".com"
@@ -291,7 +268,6 @@ func TestAnalyzeHandler_LargeRequest(t *testing.T) {
 	}
 }
 
-// Benchmark tests
 func BenchmarkAnalyzeHandler_SingleURL(b *testing.B) {
 	requestBody := models.URLRequest{
 		URLs: []string{"https://example.com"},

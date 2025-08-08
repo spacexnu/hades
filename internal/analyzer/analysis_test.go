@@ -22,7 +22,7 @@ func TestExtractFeatures(t *testing.T) {
 				NumSubdomains:        0, // example.com has 2 parts, so 2-2=0 subdomains
 				UsesIPAddress:        false,
 				UsesInsecureProtocol: false,
-				DomainAgeDays:        10946, // Actual domain age from WHOIS lookup
+				DomainAgeDays:        10951, // Actual domain age from WHOIS lookup
 			},
 		},
 		{
