@@ -19,6 +19,9 @@ func TestExtractFeatures(t *testing.T) {
 				DomainLength:         11, // "example.com"
 				URLLength:            19, // "https://example.com"
 				HasSuspiciousWords:   false,
+				HasLongNumericPath:   false,
+				InFeedBlocklist:      false,
+				FeedMatchType:        "",
 				NumSubdomains:        0, // example.com has 2 parts, so 2-2=0 subdomains
 				UsesIPAddress:        false,
 				UsesInsecureProtocol: false,
@@ -32,7 +35,10 @@ func TestExtractFeatures(t *testing.T) {
 				DomainLength:         17,   // "login.example.com"
 				URLLength:            31,   // "http://login.example.com/verify"
 				HasSuspiciousWords:   true, // contains "login" and "verify"
-				NumSubdomains:        1,    // login.example.com has 3 parts, so 3-2=1 subdomain
+				HasLongNumericPath:   false,
+				InFeedBlocklist:      false,
+				FeedMatchType:        "",
+				NumSubdomains:        1, // login.example.com has 3 parts, so 3-2=1 subdomain
 				UsesIPAddress:        false,
 				UsesInsecureProtocol: true,
 				DomainAgeDays:        -1, // WHOIS lookup fails for subdomains
@@ -45,6 +51,9 @@ func TestExtractFeatures(t *testing.T) {
 				DomainLength:         26, // "sub1.sub2.sub3.example.com"
 				URLLength:            34, // "https://sub1.sub2.sub3.example.com"
 				HasSuspiciousWords:   false,
+				HasLongNumericPath:   false,
+				InFeedBlocklist:      false,
+				FeedMatchType:        "",
 				NumSubdomains:        3, // sub1.sub2.sub3.example.com has 5 parts, so 5-2=3 subdomains
 				UsesIPAddress:        false,
 				UsesInsecureProtocol: false,
@@ -58,7 +67,10 @@ func TestExtractFeatures(t *testing.T) {
 				DomainLength:         21,   // "secure-bank-login.com"
 				URLLength:            29,   // "https://secure-bank-login.com"
 				HasSuspiciousWords:   true, // contains "bank" and "login"
-				NumSubdomains:        0,    // secure-bank-login.com has 2 parts, so 2-2=0 subdomains
+				HasLongNumericPath:   false,
+				InFeedBlocklist:      false,
+				FeedMatchType:        "",
+				NumSubdomains:        0, // secure-bank-login.com has 2 parts, so 2-2=0 subdomains
 				UsesIPAddress:        false,
 				UsesInsecureProtocol: false,
 				DomainAgeDays:        -1,
@@ -71,7 +83,10 @@ func TestExtractFeatures(t *testing.T) {
 				DomainLength:         18,   // "update.example.org"
 				URLLength:            32,   // "http://update.example.org/secure"
 				HasSuspiciousWords:   true, // contains "update" and "secure"
-				NumSubdomains:        1,    // update.example.org has 3 parts, so 3-2=1 subdomain
+				HasLongNumericPath:   false,
+				InFeedBlocklist:      false,
+				FeedMatchType:        "",
+				NumSubdomains:        1, // update.example.org has 3 parts, so 3-2=1 subdomain
 				UsesIPAddress:        false,
 				UsesInsecureProtocol: true,
 				DomainAgeDays:        -1, // This subdomain likely doesn't exist, so WHOIS will fail
@@ -84,7 +99,10 @@ func TestExtractFeatures(t *testing.T) {
 				DomainLength:         11,   // "192.168.1.1"
 				URLLength:            24,   // "http://192.168.1.1/login"
 				HasSuspiciousWords:   true, // contains "login"
-				NumSubdomains:        2,    // IP addresses are split by dots: 4 parts - 2 = 2
+				HasLongNumericPath:   false,
+				InFeedBlocklist:      false,
+				FeedMatchType:        "",
+				NumSubdomains:        2, // IP addresses are split by dots: 4 parts - 2 = 2
 				UsesIPAddress:        true,
 				UsesInsecureProtocol: true,
 				DomainAgeDays:        -1, // IP addresses don't have WHOIS data
@@ -97,10 +115,29 @@ func TestExtractFeatures(t *testing.T) {
 				DomainLength:         11,   // "2001:db8::1"
 				URLLength:            28,   // "https://[2001:db8::1]/secure"
 				HasSuspiciousWords:   true, // contains "secure"
-				NumSubdomains:        -1,   // IPv6 has no dots: 1 part - 2 = -1
+				HasLongNumericPath:   false,
+				InFeedBlocklist:      false,
+				FeedMatchType:        "",
+				NumSubdomains:        -1, // IPv6 has no dots: 1 part - 2 = -1
 				UsesIPAddress:        true,
 				UsesInsecureProtocol: false,
 				DomainAgeDays:        -1, // IP addresses don't have WHOIS data
+			},
+		},
+		{
+			name: "URL with long numeric path",
+			url:  "https://example.com/12345678901",
+			expected: models.URLFeatures{
+				DomainLength:         11, // "example.com"
+				URLLength:            31, // "https://example.com/12345678901"
+				HasSuspiciousWords:   false,
+				HasLongNumericPath:   true,
+				InFeedBlocklist:      false,
+				FeedMatchType:        "",
+				NumSubdomains:        0,
+				UsesIPAddress:        false,
+				UsesInsecureProtocol: false,
+				DomainAgeDays:        10951,
 			},
 		},
 	}
@@ -117,6 +154,9 @@ func TestExtractFeatures(t *testing.T) {
 			}
 			if result.HasSuspiciousWords != tt.expected.HasSuspiciousWords {
 				t.Errorf("HasSuspiciousWords: expected %t, got %t", tt.expected.HasSuspiciousWords, result.HasSuspiciousWords)
+			}
+			if result.HasLongNumericPath != tt.expected.HasLongNumericPath {
+				t.Errorf("HasLongNumericPath: expected %t, got %t", tt.expected.HasLongNumericPath, result.HasLongNumericPath)
 			}
 			if result.NumSubdomains != tt.expected.NumSubdomains {
 				t.Errorf("NumSubdomains: expected %d, got %d", tt.expected.NumSubdomains, result.NumSubdomains)
@@ -147,6 +187,9 @@ func TestEvaluateHeuristics(t *testing.T) {
 				DomainLength:         15,
 				URLLength:            30,
 				HasSuspiciousWords:   false,
+				HasLongNumericPath:   false,
+				InFeedBlocklist:      false,
+				FeedMatchType:        "",
 				NumSubdomains:        1,
 				UsesIPAddress:        false,
 				UsesInsecureProtocol: false,
@@ -160,6 +203,9 @@ func TestEvaluateHeuristics(t *testing.T) {
 				DomainLength:         15,
 				URLLength:            30,
 				HasSuspiciousWords:   false,
+				HasLongNumericPath:   false,
+				InFeedBlocklist:      false,
+				FeedMatchType:        "",
 				NumSubdomains:        1,
 				UsesIPAddress:        false,
 				UsesInsecureProtocol: true,
@@ -173,6 +219,9 @@ func TestEvaluateHeuristics(t *testing.T) {
 				DomainLength:         15,
 				URLLength:            30,
 				HasSuspiciousWords:   true,
+				HasLongNumericPath:   false,
+				InFeedBlocklist:      false,
+				FeedMatchType:        "",
 				NumSubdomains:        1,
 				UsesIPAddress:        false,
 				UsesInsecureProtocol: false,
@@ -186,6 +235,9 @@ func TestEvaluateHeuristics(t *testing.T) {
 				DomainLength:         15,
 				URLLength:            30,
 				HasSuspiciousWords:   false,
+				HasLongNumericPath:   false,
+				InFeedBlocklist:      false,
+				FeedMatchType:        "",
 				NumSubdomains:        4,
 				UsesIPAddress:        false,
 				UsesInsecureProtocol: false,
@@ -199,6 +251,9 @@ func TestEvaluateHeuristics(t *testing.T) {
 				DomainLength:         15,
 				URLLength:            30,
 				HasSuspiciousWords:   false,
+				HasLongNumericPath:   false,
+				InFeedBlocklist:      false,
+				FeedMatchType:        "",
 				NumSubdomains:        0,
 				UsesIPAddress:        true,
 				UsesInsecureProtocol: false,
@@ -212,6 +267,9 @@ func TestEvaluateHeuristics(t *testing.T) {
 				DomainLength:         15,
 				URLLength:            30,
 				HasSuspiciousWords:   false,
+				HasLongNumericPath:   false,
+				InFeedBlocklist:      false,
+				FeedMatchType:        "",
 				NumSubdomains:        1,
 				UsesIPAddress:        false,
 				UsesInsecureProtocol: false,
@@ -225,6 +283,9 @@ func TestEvaluateHeuristics(t *testing.T) {
 				DomainLength:         15,
 				URLLength:            30,
 				HasSuspiciousWords:   true,
+				HasLongNumericPath:   false,
+				InFeedBlocklist:      false,
+				FeedMatchType:        "",
 				NumSubdomains:        5,
 				UsesIPAddress:        true,
 				UsesInsecureProtocol: true,
@@ -238,6 +299,9 @@ func TestEvaluateHeuristics(t *testing.T) {
 				DomainLength:         15,
 				URLLength:            30,
 				HasSuspiciousWords:   false,
+				HasLongNumericPath:   false,
+				InFeedBlocklist:      false,
+				FeedMatchType:        "",
 				NumSubdomains:        1,
 				UsesIPAddress:        false,
 				UsesInsecureProtocol: false,
@@ -251,12 +315,63 @@ func TestEvaluateHeuristics(t *testing.T) {
 				DomainLength:         15,
 				URLLength:            30,
 				HasSuspiciousWords:   false,
+				HasLongNumericPath:   false,
+				InFeedBlocklist:      false,
+				FeedMatchType:        "",
 				NumSubdomains:        1,
 				UsesIPAddress:        false,
 				UsesInsecureProtocol: false,
 				DomainAgeDays:        -1,
 			},
 			expected: 0, // -1 is not >= 0, so no penalty
+		},
+		{
+			name: "long numeric path only",
+			features: models.URLFeatures{
+				DomainLength:         15,
+				URLLength:            30,
+				HasSuspiciousWords:   false,
+				HasLongNumericPath:   true,
+				InFeedBlocklist:      false,
+				FeedMatchType:        "",
+				NumSubdomains:        1,
+				UsesIPAddress:        false,
+				UsesInsecureProtocol: false,
+				DomainAgeDays:        365,
+			},
+			expected: 20,
+		},
+		{
+			name: "long domain only",
+			features: models.URLFeatures{
+				DomainLength:         30,
+				URLLength:            30,
+				HasSuspiciousWords:   false,
+				HasLongNumericPath:   false,
+				InFeedBlocklist:      false,
+				FeedMatchType:        "",
+				NumSubdomains:        1,
+				UsesIPAddress:        false,
+				UsesInsecureProtocol: false,
+				DomainAgeDays:        365,
+			},
+			expected: 10,
+		},
+		{
+			name: "feed match only",
+			features: models.URLFeatures{
+				DomainLength:         15,
+				URLLength:            30,
+				HasSuspiciousWords:   false,
+				HasLongNumericPath:   false,
+				InFeedBlocklist:      true,
+				FeedMatchType:        "domain",
+				NumSubdomains:        1,
+				UsesIPAddress:        false,
+				UsesInsecureProtocol: false,
+				DomainAgeDays:        365,
+			},
+			expected: 200,
 		},
 	}
 
@@ -304,6 +419,16 @@ func TestContainsSuspiciousWord(t *testing.T) {
 		{
 			name:     "contains bank",
 			url:      "https://bank.example.com",
+			expected: true,
+		},
+		{
+			name:     "contains pagmei",
+			url:      "https://pagmei.example.com",
+			expected: true,
+		},
+		{
+			name:     "contains regulariza",
+			url:      "https://regularizareimediato.com",
 			expected: true,
 		},
 		{

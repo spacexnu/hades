@@ -42,6 +42,20 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
 
+  ingest:
+    image: hades:latest
+    container_name: hades-ingest
+    environment:
+      - DATABASE_URL=postgres://hades:hades@db:5432/hades?sslmode=disable
+      - INGEST_INTERVAL=6h
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    entrypoint: ["/app/hades-ingest"]
+    restart: unless-stopped
+
 
 volumes:
   hades-db-data:

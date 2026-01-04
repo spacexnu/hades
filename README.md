@@ -21,6 +21,7 @@ It uses simple yet effective heuristics to evaluate URLs without relying on rest
     - IP address instead of hostname
     - Excessive subdomain count
     - **Domain age** (via WHOIS lookup)
+- **Local blocklist feeds** (open-source) via background ingestion
 
 ### Scoring System
 
@@ -49,6 +50,7 @@ The score is calculated by applying weighted penalties for suspicious URL charac
 - Local WHOIS caching (SQLite)
 - Basic HTML parsing (detecting malicious forms)
 - Dynamic configuration for suspicious keywords
+- Open feed ingestion (public blocklists)
 - Parallel processing (goroutines)
 - Optional ML integration (ONNX)
 
@@ -66,6 +68,20 @@ cd hades
 go mod tidy
 go run ./cmd/server
 ```
+
+### Feed ingestion (open blocklists)
+
+HADES can ingest public blocklists without requiring paid services or accounts.
+
+```bash
+# Run once
+make ingest
+
+# Run on a schedule (every 6 hours)
+make ingest-loop
+```
+
+Docker compose uses `INGEST_INTERVAL` (e.g. `6h`) for the ingest service loop.
 
 ### API usage
 

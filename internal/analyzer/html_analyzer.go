@@ -10,6 +10,78 @@ import (
 	"time"
 )
 
+var suspiciousTitlesEN = []string{
+	"verify your account",
+	"account suspended",
+	"urgent action required",
+	"security alert",
+	"confirm your identity",
+	"update payment",
+	"expired session",
+	"login verification",
+}
+
+var suspiciousTitlesPT = []string{
+	"verifique sua conta",
+	"conta suspensa",
+	"acao imediata",
+	"alerta de seguranca",
+	"confirmar identidade",
+	"atualizar pagamento",
+	"sessao expirada",
+	"verificacao de login",
+	"pagamento pendente",
+}
+
+var phishingKeywordsEN = []string{
+	"click here to verify",
+	"account will be closed",
+	"immediate action required",
+	"suspended account",
+	"confirm your password",
+	"update your information",
+	"verify identity",
+	"security breach",
+	"unauthorized access",
+	"click here immediately",
+}
+
+var phishingKeywordsPT = []string{
+	"clique aqui para verificar",
+	"conta sera encerrada",
+	"acao imediata necessaria",
+	"conta suspensa",
+	"confirme sua senha",
+	"atualize suas informacoes",
+	"verifique sua identidade",
+	"violacao de seguranca",
+	"acesso nao autorizado",
+	"clique aqui imediatamente",
+	"pagamento pendente",
+	"regularizacao imediata",
+	"boleto",
+	"pix",
+}
+
+var suspiciousActionsEN = []string{
+	"login",
+	"signin",
+	"verify",
+	"confirm",
+	"update",
+	"secure",
+}
+
+var suspiciousActionsPT = []string{
+	"entrar",
+	"login",
+	"verificar",
+	"confirmar",
+	"atualizar",
+	"seguranca",
+	"pagamento",
+}
+
 // HTMLFeatures captures heuristic signals derived from parsed HTML used for phishing detection.
 type HTMLFeatures struct {
 	ContentFetched       bool `json:"content_fetched"`
@@ -63,21 +135,17 @@ func FetchAndAnalyzeHTML(url string) HTMLFeatures {
 	features.MissingSSLIndicators = analyzeMissingSSLIndicators(htmlContent)
 
 	features.HTMLScore = calculateHTMLScore(features)
+	if features.HTMLScore > 0 {
+		if title := extractTitleCandidate(htmlContent); title != "" {
+			queuePendingPhrases("html_title", []string{title})
+		}
+	}
 
 	return features
 }
 
 func analyzeSuspiciousTitle(html string) bool {
-	suspiciousTitles := []string{
-		"verify your account",
-		"account suspended",
-		"urgent action required",
-		"security alert",
-		"confirm your identity",
-		"update payment",
-		"expired session",
-		"login verification",
-	}
+	suspiciousTitles := approvedPhrases("html_title", append(suspiciousTitlesEN, suspiciousTitlesPT...))
 
 	titleRegex := regexp.MustCompile(`<title[^>]*>(.*?)</title>`)
 	matches := titleRegex.FindStringSubmatch(html)
@@ -95,18 +163,7 @@ func analyzeSuspiciousTitle(html string) bool {
 }
 
 func analyzePhishingKeywords(html string) bool {
-	phishingKeywords := []string{
-		"click here to verify",
-		"account will be closed",
-		"immediate action required",
-		"suspended account",
-		"confirm your password",
-		"update your information",
-		"verify identity",
-		"security breach",
-		"unauthorized access",
-		"click here immediately",
-	}
+	phishingKeywords := approvedPhrases("html_keyword", append(phishingKeywordsEN, phishingKeywordsPT...))
 
 	htmlLower := strings.ToLower(html)
 	for _, keyword := range phishingKeywords {
@@ -120,14 +177,7 @@ func analyzePhishingKeywords(html string) bool {
 func analyzeSuspiciousForms(html string) bool {
 	passwordFormRegex := regexp.MustCompile(`<form[^>]*>.*?<input[^>]*type=["']password["'][^>]*>.*?</form>`)
 	if passwordFormRegex.MatchString(html) {
-		suspiciousActions := []string{
-			"login",
-			"signin",
-			"verify",
-			"confirm",
-			"update",
-			"secure",
-		}
+		suspiciousActions := approvedPhrases("form_action", append(suspiciousActionsEN, suspiciousActionsPT...))
 
 		actionRegex := regexp.MustCompile(`action=["']([^"']+)["']`)
 		matches := actionRegex.FindAllStringSubmatch(html, -1)
@@ -237,4 +287,19 @@ func calculateHTMLScore(features HTMLFeatures) int {
 	}
 
 	return score
+}
+
+func extractTitleCandidate(html string) string {
+	titleRegex := regexp.MustCompile(`<title[^>]*>(.*?)</title>`)
+	matches := titleRegex.FindStringSubmatch(html)
+	if len(matches) < 2 {
+		return ""
+	}
+
+	title := strings.ToLower(strings.TrimSpace(matches[1]))
+	if title == "" || len(title) > 120 {
+		return ""
+	}
+
+	return title
 }

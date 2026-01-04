@@ -8,13 +8,16 @@ type URLRequest struct {
 
 // URLFeatures describes properties extracted from the URL string and domain.
 type URLFeatures struct {
-	DomainLength         int  `json:"domain_length"`
-	URLLength            int  `json:"url_length"`
-	HasSuspiciousWords   bool `json:"has_suspicious_words"`
-	NumSubdomains        int  `json:"num_subdomains"`
-	UsesIPAddress        bool `json:"uses_ip_address"`
-	UsesInsecureProtocol bool `json:"uses_insecure_protocol"`
-	DomainAgeDays        int  `json:"domain_age_days"`
+	DomainLength         int    `json:"domain_length"`
+	URLLength            int    `json:"url_length"`
+	HasSuspiciousWords   bool   `json:"has_suspicious_words"`
+	HasLongNumericPath   bool   `json:"has_long_numeric_path"`
+	InFeedBlocklist      bool   `json:"in_feed_blocklist"`
+	FeedMatchType        string `json:"feed_match_type"`
+	NumSubdomains        int    `json:"num_subdomains"`
+	UsesIPAddress        bool   `json:"uses_ip_address"`
+	UsesInsecureProtocol bool   `json:"uses_insecure_protocol"`
+	DomainAgeDays        int    `json:"domain_age_days"`
 }
 
 // HTMLFeatures describes signals extracted from a page's HTML content.

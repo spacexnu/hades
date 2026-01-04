@@ -7,6 +7,11 @@ build:
 lint:
 	golangci-lint run ./...
 
+# Migration configuration
+MIGRATE_PATH ?= ./migrations
+MIGRATE_DB ?= postgres://hades:hades@localhost:5432/hades?sslmode=disable
+DATABASE_URL ?= postgres://hades:hades@localhost:5432/hades?sslmode=disable
+
 # Test targets
 test:
 	go test ./...
@@ -48,10 +53,19 @@ clean-test:
 
 
 migrate-up:
-	migrate -path ./migrations -database "postgres://hades:hades@localhost:5432/hades?sslmode=disable" up
+	migrate -path $(MIGRATE_PATH) -database "$(MIGRATE_DB)" up
 
 migrate-down:
-	migrate -path ./migrations -database "postgres://hades:hades@localhost:5432/hades?sslmode=disable" down
+	migrate -path $(MIGRATE_PATH) -database "$(MIGRATE_DB)" down
+
+migrate:
+	migrate -path $(MIGRATE_PATH) -database "$(MIGRATE_DB)" up
+
+ingest:
+	DATABASE_URL="$(DATABASE_URL)" go run ./cmd/ingest
+
+ingest-loop:
+	DATABASE_URL="$(DATABASE_URL)" go run ./cmd/ingest -interval 6h
 
 docker-build:
 	docker build -t hades:latest .
@@ -91,4 +105,4 @@ docker-migrate-down:
 		-path=/migrations \
 		-database postgres://hades:hades@db:5432/hades?sslmode=disable down
 
-.PHONY: run build test test-verbose test-coverage test-coverage-html test-models test-analyzer test-api test-db test-ml test-fast benchmark clean-test migrate-up migrate-down docker-build docker-up docker-test docker-down docker-logs docker-clean
+.PHONY: run build test test-verbose test-coverage test-coverage-html test-models test-analyzer test-api test-db test-ml test-fast benchmark clean-test migrate migrate-up migrate-down ingest ingest-loop docker-build docker-up docker-test docker-down docker-logs docker-clean
