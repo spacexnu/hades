@@ -102,6 +102,9 @@ func TestURLFeatures_JSONMarshaling(t *testing.T) {
 		DomainLength:         15,
 		URLLength:            50,
 		HasSuspiciousWords:   true,
+		HasLongNumericPath:   false,
+		InFeedBlocklist:      false,
+		FeedMatchType:        "",
 		NumSubdomains:        2,
 		UsesIPAddress:        false,
 		UsesInsecureProtocol: true,
@@ -113,14 +116,14 @@ func TestURLFeatures_JSONMarshaling(t *testing.T) {
 		t.Fatalf("Failed to marshal URLFeatures: %v", err)
 	}
 
-	expected := `{"domain_length":15,"url_length":50,"has_suspicious_words":true,"num_subdomains":2,"uses_ip_address":false,"uses_insecure_protocol":true,"domain_age_days":365}`
+	expected := `{"domain_length":15,"url_length":50,"has_suspicious_words":true,"has_long_numeric_path":false,"in_feed_blocklist":false,"feed_match_type":"","num_subdomains":2,"uses_ip_address":false,"uses_insecure_protocol":true,"domain_age_days":365}`
 	if string(jsonData) != expected {
 		t.Errorf("Expected %s, got %s", expected, string(jsonData))
 	}
 }
 
 func TestURLFeatures_JSONUnmarshaling(t *testing.T) {
-	jsonData := `{"domain_length":15,"url_length":50,"has_suspicious_words":true,"num_subdomains":2,"uses_ip_address":false,"uses_insecure_protocol":true,"domain_age_days":365}`
+	jsonData := `{"domain_length":15,"url_length":50,"has_suspicious_words":true,"has_long_numeric_path":false,"in_feed_blocklist":false,"feed_match_type":"","num_subdomains":2,"uses_ip_address":false,"uses_insecure_protocol":true,"domain_age_days":365}`
 
 	var features URLFeatures
 	err := json.Unmarshal([]byte(jsonData), &features)
@@ -132,6 +135,9 @@ func TestURLFeatures_JSONUnmarshaling(t *testing.T) {
 		DomainLength:         15,
 		URLLength:            50,
 		HasSuspiciousWords:   true,
+		HasLongNumericPath:   false,
+		InFeedBlocklist:      false,
+		FeedMatchType:        "",
 		NumSubdomains:        2,
 		UsesIPAddress:        false,
 		UsesInsecureProtocol: true,
@@ -151,6 +157,9 @@ func TestURLAnalysisResult_JSONMarshaling(t *testing.T) {
 			DomainLength:         11,
 			URLLength:            19,
 			HasSuspiciousWords:   false,
+			HasLongNumericPath:   false,
+			InFeedBlocklist:      false,
+			FeedMatchType:        "",
 			NumSubdomains:        0,
 			UsesIPAddress:        false,
 			UsesInsecureProtocol: false,
@@ -192,7 +201,7 @@ func TestURLAnalysisResult_JSONMarshaling(t *testing.T) {
 }
 
 func TestURLAnalysisResult_JSONUnmarshaling(t *testing.T) {
-	jsonData := `{"url":"https://example.com","score":75,"url_details":{"domain_length":11,"url_length":19,"has_suspicious_words":false,"num_subdomains":0,"uses_ip_address":false,"uses_insecure_protocol":false,"domain_age_days":1000},"html_details":{"content_fetched":true,"has_suspicious_title":false,"has_phishing_keywords":false,"has_suspicious_forms":false,"has_external_redirects":false,"has_obfuscated_code":false,"missing_ssl_indicators":false,"html_score":0},"final_score":30}`
+	jsonData := `{"url":"https://example.com","score":75,"url_details":{"domain_length":11,"url_length":19,"has_suspicious_words":false,"has_long_numeric_path":false,"in_feed_blocklist":false,"feed_match_type":"","num_subdomains":0,"uses_ip_address":false,"uses_insecure_protocol":false,"domain_age_days":1000},"html_details":{"content_fetched":true,"has_suspicious_title":false,"has_phishing_keywords":false,"has_suspicious_forms":false,"has_external_redirects":false,"has_obfuscated_code":false,"missing_ssl_indicators":false,"html_score":0},"final_score":30}`
 
 	var result URLAnalysisResult
 	err := json.Unmarshal([]byte(jsonData), &result)
